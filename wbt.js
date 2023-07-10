@@ -5,11 +5,12 @@ const provider = new Web3.providers.HttpProvider('https://rpc-testnet.whitebit.n
 const web3 = new Web3(provider);
 
 //==============================================SETTINGS===================================================
-const myWallets = readFile('to.txt'); //where to send
-const myPrivateKey = ''; //your private here
+const myWallets = readFile('source.txt'); //where to send
+const myPrivateKeys = readFile('destination.txt');
 const amountMin = 0.01; //min amount to send
 const amountMax = 0.1; //max amount to send
-let sleepTime = 2; //sec
+const sleepTimeMin = 2; //sec
+const sleepTimeMax = 3; //sec
 //=========================================================================================================
 
 
@@ -23,19 +24,19 @@ function readFile(filePath) {
     return result;
 }
 
-async function sendWBT(from, to, amount, myPrivateKey){
-  console.log('from: ' + from + ', to: ' + to + ', amount: ' + amount + ';');
+async function sendWBT(source, destination, amount, myPrivateKey){
+  console.log('from: ' + source + ', to: ' + destination + ', amount: ' + amount + ';');
   amount = web3.utils.toWei(amount, 'ether');
   const gasPrice = await web3.eth.getGasPrice();
   const gasLimit = await web3.eth.estimateGas({
-    from: from,
-    to: to,
+    from: source,
+    to: destination,
     value: amount
   });
  const tx = await web3.eth.accounts.signTransaction(
     {
-      from: from,
-      to: to,
+      from: source,
+      to: destination,
       value: amount,
       gas: gasLimit * 2,
       gasPrice: gasPrice
@@ -66,17 +67,19 @@ function getRandomNumber(min, max) {
 
 
 async function main() {
-    const myAccount = web3.eth.accounts.privateKeyToAccount(myPrivateKey);
+  let destinationAddress = '';
+  for (let c = 0; c < myPrivateKeys.length; c++) {
+    let myAccount = web3.eth.accounts.privateKeyToAccount(myPrivateKeys[c]);
     let sourceAddress = myAccount.address;
-    let destinationAddress = '';
     console.log('Starting @ ' + currentTime());
     for (let i = 0; i < myWallets.length; i++) {
         destinationAddress = myWallets[i];
         let amount = getRandomNumber(amountMin, amountMax);
-        let result = await sendWBT(sourceAddress, destinationAddress, amount.toString(), myPrivateKey);
-        wait(sleepTime);
+        await sendWBT(sourceAddress, destinationAddress, amount.toString(), myPrivateKeys[c]);
+        wait(getRandomNumber(sleepTimeMin, sleepTimeMax));
       }
     console.log('Ended @ ' + currentTime());
+  }
 }
 
 main();
