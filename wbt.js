@@ -5,8 +5,8 @@ const provider = new Web3.providers.HttpProvider('https://rpc-testnet.whitebit.n
 const web3 = new Web3(provider);
 
 //==============================================SETTINGS===================================================
-const myWallets = readFile('source.txt'); //where to send
-const myPrivateKeys = readFile('destination.txt');
+const myWallets = readFile('destination.txt'); //where to send
+const myPrivateKeys = readFile('source.txt');
 const amountMin = 0.01; //min amount to send
 const amountMax = 0.1; //max amount to send
 const sleepTimeMin = 2; //sec
@@ -24,8 +24,20 @@ function readFile(filePath) {
     return result;
 }
 
+async function getBalanceWBT (myAddress){
+  let walletBalanceWBT = await web3.eth.getBalance(myAddress);
+  walletBalanceWBT = web3.utils.fromWei(walletBalanceWBT, 'ether');
+  return walletBalanceWBT;
+}
+
+function line(){
+  console.log('==============================================================================================================================');
+}
+
 async function sendWBT(source, destination, amount, myPrivateKey){
-  console.log('from: ' + source + ', to: ' + destination + ', amount: ' + amount + ';');
+  let balance = await getBalanceWBT(source);
+  line();
+  console.log('FROM: ' + source + '\nTO: ' + destination + '\nBALANCE: ' + balance + ' WBT' + '\nAMOUNT: ' + amount + ' WBT');
   amount = web3.utils.toWei(amount, 'ether');
   const gasPrice = await web3.eth.getGasPrice();
   const gasLimit = await web3.eth.estimateGas({
@@ -44,11 +56,12 @@ async function sendWBT(source, destination, amount, myPrivateKey){
     myPrivateKey
   );
   const signedTx = await web3.eth.sendSignedTransaction(tx.rawTransaction);
-  console.log('Done! tx: ', signedTx.transactionHash);
+  console.log('https://explorer.whitebit.network/testnet/tx/%s\nDONE!', signedTx.transactionHash);
+  line();
 }
 
 function wait(timeout) {
-  console.log('Waiting: ' + timeout + 'sec')
+  console.log('Waiting: ' + timeout.toFixed(2) + ' sec')
   return new Promise((resolve) => {
     setTimeout(resolve, timeout*1000);
   });
@@ -72,13 +85,14 @@ async function main() {
     let myAccount = web3.eth.accounts.privateKeyToAccount(myPrivateKeys[c]);
     let sourceAddress = myAccount.address;
     console.log('Starting @ ' + currentTime());
-    for (let i = 0; i < myWallets.length; i++) {
+      for (let i = 0; i < myWallets.length; i++) {
         destinationAddress = myWallets[i];
         let amount = getRandomNumber(amountMin, amountMax);
         await sendWBT(sourceAddress, destinationAddress, amount.toString(), myPrivateKeys[c]);
         wait(getRandomNumber(sleepTimeMin, sleepTimeMax));
       }
     console.log('Ended @ ' + currentTime());
+    
   }
 }
 
